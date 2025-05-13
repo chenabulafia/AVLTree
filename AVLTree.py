@@ -24,7 +24,7 @@ class AVLNode(object):
 		self.parent = None
 		self.height = -1
 		self.bf = 0
-		
+		self.height_changed = False
 
 	"""returns whether self is not a virtual node 
 
@@ -87,29 +87,29 @@ class AVLTree(object):
 	def insert(self, key, val, start="root"):
 		self.tree_size += 1
 		if start == "max":
-			new_node, height_changed = self.insert_from_max(key, val)
+			new_node = self.insert_from_max(key, val)
 		if start == "root":
-			new_node, height_changed = self.insert_from_root(key, val)
+			new_node = self.insert_from_root(key, val)
 			if key > self.max.key:
 				self.max = new_node
 
 		node = new_node.parent
 		num_of_rotations = 0
-		import ipdb; ipdb.set_trace()
 		while (node is not None) and (node.is_real_node()):
 			abs_bf = abs(node.bf)
-			if (abs_bf < 2) and (not height_changed):
+			if (abs_bf < 2) and (not node.height_changed):
 				return 0
-			if (abs_bf < 2) and (height_changed):
+			if (abs_bf < 2) and (node.height_changed):
+				node.height_changed = False
 				node = node.parent
 			if abs_bf == 2:
 				num_of_rotations += self.rotations(node)
+				node.height_changed = False
 				node = node.parent
 
 		return num_of_rotations
 
 	def insert_from_max(self, key, val):
-		height_changed = False
 		new_node = AVLNode(key, val)
 		new_node.left = AVLNode(None, None)
 		new_node.right = AVLNode(None, None)
@@ -131,24 +131,22 @@ class AVLTree(object):
 			node = node.parent
 			new_node.parent = node
 			if (not node.left.is_real_node()) and (not node.right.is_real_node()):
-				height_changed = True
 				self._update_height_and_bf(node)
 			if key > node.key:
 				node.right = new_node
 			else:
 				node.left = new_node
 		
-		return new_node, height_changed
+		return new_node
 
 	def insert_from_root(self, key, val):
-		height_changed = False
 		new_node = self._create_new_node(key, val)
 
 		# Deal with empty tree
 		if not self.root.is_real_node():
 			self.root = new_node
 			self.max = new_node
-			return new_node, height_changed
+			return new_node
 
 		# Search where to insert
 		node = self.root
@@ -168,11 +166,9 @@ class AVLTree(object):
 		
 		# Changed height so need to fix
 		if (not node.left.is_real_node()) or (not node.right.is_real_node()):
-			height_changed = True
 			self._update_height_and_bf(node)
 
-		return new_node, height_changed
-
+		return new_node
 
 	def _create_new_node(self, key, val):
 		new_node = AVLNode(key, val)
@@ -180,12 +176,14 @@ class AVLTree(object):
 		new_node.right = AVLNode(None, None)
 		new_node.right.parent = new_node
 		new_node.left.parent = new_node
+		new_node.height = 0
 		return new_node
 
 	def _update_height_and_bf(self, node):
-		import ipdb; ipdb.set_trace()
 		while (node is not None):
-			node.height = max(node.left.height, node.right.height) + 1
+			if node.left.height != node.right.height:
+				node.height = max(node.left.height, node.right.height) + 1
+				node.height_changed = True
 			node.bf = (node.left.height - node.right.height)
 
 			node = node.parent
@@ -273,7 +271,7 @@ class AVLTree(object):
 	def print_tree(self):
 		def _print(node, prefix="", is_left=True):
 			if node is not None:
-				_print(node.right, prefix+ ("|   " if is_left else "     "), False)
+				_print(node.right, prefix+ ("|    " if is_left else "    "), False)
 				print(prefix + ("|____" if is_left else "|----") + str(node.key))
 				_print(node.left, prefix + ("    " if is_left else "|   "), True)
 
