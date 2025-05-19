@@ -54,6 +54,7 @@ class AVLTree(object):
 		self.root.right = AVLNode(None, None)
 		self.max_node = self.root
 		self.tree_size = 0
+		self.bf0_count = 0
 
 
 	"""searches for a node in the dictionary corresponding to the key
@@ -117,6 +118,7 @@ class AVLTree(object):
 			self.root = new_node
 			self.max_node = new_node
 			self.tree_size = 1
+			self.bf0_count = 1
 			return new_node, False
 
 		self._insert_node(self.root, new_node)
@@ -125,6 +127,13 @@ class AVLTree(object):
 		return new_node, height_changed
 
 	def insert_from_max(self, new_node):
+		if (self.root.max is None):
+			self.root = new_node
+			self.max_node = new_node
+			self.tree_size = 1
+			self.bf0_count = 1
+			return new_node, False
+
 		if new_node.key > self.max:
 			new_node.parent = self.max
 			self.max.right = new_node
@@ -135,7 +144,6 @@ class AVLTree(object):
 				node = node.parent
 			
 			self._insert_node(node, new_node)
-			
 		
 		height_changed = self._update_height_and_bf(new_node)
 		return new_node, height_changed
