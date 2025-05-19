@@ -254,7 +254,12 @@ class AVLTree(object):
 	@returns: a sorted list according to key of touples (key, value) representing the data structure
 	"""
 	def avl_to_array(self):
-		return None
+		return self._rec_to_array(self.root)
+
+	def _rec_to_array(self, node):
+		if node is None:
+			return []
+		return self._rec_to_array(node.left) + [node.key] + self._rec_to_array(node.right)
 
 
 	"""returns the number of items in dictionary 
