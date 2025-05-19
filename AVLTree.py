@@ -50,8 +50,10 @@ class AVLTree(object):
 	"""
 	def __init__(self):
 		self.root = AVLNode(None, None)
-		self.max = AVLNode(None, None)
-		self.tree_size = 0 
+		self.root.left = AVLNode(None, None)
+		self.root.right = AVLNode(None, None)
+		self.max_node = self.root
+		self.tree_size = 0
 
 
 	"""searches for a node in the dictionary corresponding to the key
@@ -85,121 +87,110 @@ class AVLTree(object):
 	@returns: the number of rebalancing operation due to AVL rebalancing
 	"""
 	def insert(self, key, val, start="root"):
-		self.tree_size += 1
+		node = AVLNode(key,val)
+		node.left = AVLNode(None,None)
+		node.right = AVLNode(None,None)
 		if start == "max":
-			new_node = self.insert_from_max(key, val)
-		if start == "root":
-			new_node = self.insert_from_root(key, val)
-			if key > self.max.key:
-				self.max = new_node
+			new_node, height_changed = self.insert_from_max(node)
+		elif start == "root":
+			new_node, height_changed = self.insert_from_root(node)
 
-		node = new_node.parent
+		y = new_node.parent
 		num_of_rotations = 0
-		while (node is not None) and (node.is_real_node()):
-			abs_bf = abs(node.bf)
-			if (abs_bf < 2) and (not node.height_changed):
+		while (y is not None and y.is_real_node()):
+			left_height = y.left.height if y.left and y.left.is_real_node() else -1
+			right_height = y.right.height if y.right and y.right.is_real_node() else -1
+			y.bf = left_height - right_height
+			abs_bf = abs(y.bf)
+			if (abs_bf < 2) and (not height_changed):
 				return 0
-			if (abs_bf < 2) and (node.height_changed):
-				node.height_changed = False
-				node = node.parent
-			if abs_bf == 2:
-				num_of_rotations += self.rotations(node)
-				node.height_changed = False
-				node = node.parent
+			if (abs_bf < 2) and (height_changed):
+				y = y.parent
+			if abs_bf >= 2:
+				num_of_rotations += self.rotation(y)
+				y = y.parent
 
 		return num_of_rotations
 
-	def insert_from_max(self, key, val):
-		new_node = AVLNode(key, val)
-		new_node.left = AVLNode(None, None)
-		new_node.right = AVLNode(None, None)
+	def insert_from_root(self, new_node):
+		if (self.root.key is None):
+			self.root = new_node
+			self.max_node = new_node
+			self.tree_size = 1
+			return new_node, False
+
+		self._insert_node(self.root, new_node)
 		
-		if key > self.max:
+		height_changed = self._update_height_and_bf(new_node)
+		return new_node, height_changed
+
+	def insert_from_max(self, new_node):
+		if new_node.key > self.max:
 			new_node.parent = self.max
 			self.max.right = new_node
 			self.max = new_node
 		else:
 			node = self.max
-			while (node.key > key) and (node.key != self.root.key):
+			while (node.key > new_node.key) and (node.key != self.root.key):
 				node = node.parent
 			
-			while (node.is_real_node()):
-				if node.key < key:
-					node = node.right
-				node = node.left
-		
-			node = node.parent
-			new_node.parent = node
-			if (not node.left.is_real_node()) and (not node.right.is_real_node()):
-				self._update_height_and_bf(node)
-			if key > node.key:
-				node.right = new_node
-			else:
-				node.left = new_node
-		
-		return new_node
-
-	def insert_from_root(self, key, val):
-		new_node = self._create_new_node(key, val)
-
-		# Deal with empty tree
-		if not self.root.is_real_node():
-			self.root = new_node
-			self.max = new_node
-			return new_node
-
-		# Search where to insert
-		node = self.root
-		while (node.is_real_node()):
-			if node.key < key:
-				node = node.right
-			else:
-				node = node.left
+			self._insert_node(node, new_node)
 			
-		# Insert node 
-		node = node.parent
-		new_node.parent = node
-		if key > node.key:
-			node.right = new_node
-		else:
-			node.left = new_node
 		
-		# Changed height so need to fix
-		if (not node.left.is_real_node()) or (not node.right.is_real_node()):
-			self._update_height_and_bf(node)
-
-		return new_node
-
-	def _create_new_node(self, key, val):
-		new_node = AVLNode(key, val)
+		height_changed = self._update_height_and_bf(new_node)
+		return new_node, height_changed
+	
+	def _insert_node(self, start_node, new_node):
+		y = None
+		x = start_node
+		while x is not None and x.is_real_node():
+			y = x
+			if new_node.key < x.key:
+				x = x.left
+			else: 
+				x = x.right
+	
+		new_node.parent = y
 		new_node.left = AVLNode(None, None)
 		new_node.right = AVLNode(None, None)
-		new_node.right.parent = new_node
-		new_node.left.parent = new_node
 		new_node.height = 0
-		return new_node
+
+		if y is None:
+			self.root = new_node
+		elif new_node.key < y.key:
+			y.left = new_node
+		else:
+			y.right = new_node
+		
+		if new_node.key > self.max_node.key:
+			self.max_node = new_node
 
 	def _update_height_and_bf(self, node):
-		while (node is not None):
-			if node.left.height != node.right.height:
-				node.height = max(node.left.height, node.right.height) + 1
-				node.height_changed = True
-			node.bf = (node.left.height - node.right.height)
-
-			node = node.parent
-
-	def rotations(self, node):
+		height_changed = False
+		current = node
+		while current is not None and current.is_real_node():
+			old_height = current.height
+			left_height = current.left.height if current.left.is_real_node() else -1
+			right_height = current.right.height if current.right.is_real_node() else -1
+			current.height = 1 + max(left_height,right_height)
+			current.bf = left_height - right_height
+			if current.height != old_height:
+				height_changed = True
+			current = current.parent
+		return height_changed
+			
+	def rotation(self, node):
 		changes = 1
 		if node.bf == 2:
-			if node.left.bf == 1:
+			if node.left.bf >= 0:
 				self._right_rotation(node)
 			else:
-				self._left_rotation(node)
+				self._left_rotation(node.left)
 				self._right_rotation(node)
 				changes = 2
 		else:
-			if node.left.bf == 1:
-				self._right_rotation(node)
+			if node.right.bf > 0:
+				self._right_rotation(node.right)
 				self._left_rotation(node)
 				changes = 2
 			else:
@@ -207,22 +198,44 @@ class AVLTree(object):
 
 		self._update_height_and_bf(node)
 		return changes
-		
-	def _left_rotation(self, node):
-		node.left = node.left.right
-		node.left.parent = node
-		node.left.right = node
-		node.left.parent = node.parent 
-		node.left.parent.right = node.left
-		node.parent = node.left
 
-	def _right_rotation(self, node):
-		node.left = node.left.right
-		node.left.parent = node
-		node.left.right = node
-		node.left.parent = node.parent 
-		node.left.parent.left = node.left
-		node.parent = node.left
+	def _left_rotation(self, x):
+		y = x.right
+		x.right = y.left
+		if y.left and y.left.is_real_node():
+			y.left.parent = x
+		y.parent = x.parent
+
+		if x.parent is None:
+			self.root = y
+		elif x == x.parent.left:
+			x.parent.left = y
+		else:
+			x.parent.right = y
+
+		y.left = x
+		x.parent = y
+		self._update_height_and_bf(x)
+		self._update_height_and_bf(y)
+
+	def _right_rotation(self, y):
+		x = y.left
+		y.left = x.right
+		if x.right and x.right.is_real_node():
+			x.right.parent = y
+		x.parent = y.parent
+
+		if y.parent is None:
+			self.root = x
+		elif y == y.parent.right:
+			y.parent.right = x
+		else:
+			y.parent.left = x
+
+		x.right = y
+		y.parent = x
+		self._update_height_and_bf(y)
+		self._update_height_and_bf(x)
 
 	"""deletes node from the dictionary
 
