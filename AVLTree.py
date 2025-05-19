@@ -190,14 +190,14 @@ class AVLTree(object):
 	def rotation(self, node):
 		changes = 1
 		if node.bf == 2:
-			if node.left.bf >= 0:
+			if node.left.bf == 1:
 				self._right_rotation(node)
 			else:
 				self._left_rotation(node.left)
 				self._right_rotation(node)
 				changes = 2
 		else:
-			if node.right.bf > 0:
+			if node.right.bf == 1:
 				self._right_rotation(node.right)
 				self._left_rotation(node)
 				changes = 2
@@ -291,7 +291,7 @@ class AVLTree(object):
 	@returns: the number of nodes which have balance factor equals to 0 devided by the total number of nodes
 	"""
 	def get_amir_balance_factor(self):
-		return None
+		return self.size/self.bf0_count
 
 
 	def print_tree(self):
