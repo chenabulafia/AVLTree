@@ -98,20 +98,20 @@ class AVLTree(object):
 
 		y = new_node.parent
 		num_of_rotations = 0
-		while (y is not None and y.is_real_node()):
+		while (y is not None):
 			left_height = y.left.height if y.left and y.left.is_real_node() else -1
 			right_height = y.right.height if y.right and y.right.is_real_node() else -1
 			y.bf = left_height - right_height
 			abs_bf = abs(y.bf)
 			if (abs_bf < 2) and (not height_changed):
-				return 0
+				return 0, new_node
 			if (abs_bf < 2) and (height_changed):
 				y = y.parent
 			if abs_bf >= 2:
-				num_of_rotations += self.rotation(y)
+				num_of_rotations += self.insert_rotations(y)
 				y = y.parent
 
-		return num_of_rotations
+		return (num_of_rotations, new_node)
 
 	def insert_from_root(self, new_node: AVLNode):
 		if (not self.root.is_real_node()):
@@ -122,6 +122,8 @@ class AVLTree(object):
 			return new_node, False
 
 		self._insert_node(self.root, new_node)
+		if self.max_node.key < new_node.key:
+			self.max_node = new_node
 		
 		height_changed = self._update_height_and_bf(new_node)
 		return new_node, height_changed
@@ -197,12 +199,12 @@ class AVLTree(object):
 		if prev != 0 and curr == 0:
 			self.bf0_count += 1
 			
-	def rotation(self, node: AVLNode):
+	def insert_rotations(self, node: AVLNode):
 		changes = 1
 		if node.bf == 2:
 			if node.left.bf == 1:
 				self._right_rotation(node)
-			else:
+			elif node.left.bf == -1:
 				self._left_rotation(node.left)
 				self._right_rotation(node)
 				changes = 2
@@ -211,7 +213,27 @@ class AVLTree(object):
 				self._right_rotation(node.right)
 				self._left_rotation(node)
 				changes = 2
-			else:
+			elif node.right.bf == -1:
+				self._left_rotation(node)
+
+		self._update_height_and_bf(node)
+		return changes
+	
+	def delete_rotations(self, node: AVLNode):
+		changes = 1
+		if node.bf == 2:
+			if node.left.bf >= 0:
+				self._right_rotation(node)
+			elif node.left.bf == -1:
+				self._left_rotation(node.left)
+				self._right_rotation(node)
+				changes = 2
+		else:
+			if node.right.bf == 1:
+				self._right_rotation(node.right)
+				self._left_rotation(node)
+				changes = 2
+			elif node.right.bf <= 0:
 				self._left_rotation(node)
 
 		self._update_height_and_bf(node)
@@ -265,10 +287,11 @@ class AVLTree(object):
 	def delete(self, node: AVLNode):
 		self.tree_size -= 1
 		self._delete_node(node)
-		height_changed = self._update_height_and_bf(node)
+		height_changed = self._update_height_and_bf(node.parent)
 		y = node.parent
 		num_of_rotations = 0
-		while (y is not None and y.is_real_node()):
+		
+		while (y is not None):
 			left_height = y.left.height if y.left and y.left.is_real_node() else -1
 			right_height = y.right.height if y.right and y.right.is_real_node() else -1
 			y.bf = left_height - right_height
@@ -278,20 +301,23 @@ class AVLTree(object):
 			if (abs_bf < 2) and (height_changed):
 				y = y.parent
 			if abs_bf >= 2:
-				num_of_rotations += self.rotation(y)
+				num_of_rotations += self.delete_rotations(y)
 				y = y.parent
 
-		# clear this node
+		# Clear this node
 		node.left = None
 		node.right = None
 		node.parent = None
 
 		return num_of_rotations
 
-		
-	def _delete_node(self, node:AVLNode):
+	def _delete_node(self, node: AVLNode):
+		if node.key == self.max_node.key:
+			pred = self._get_predecessor(node)
+			self.max_node = pred
+
 		# Case I - leaf
-		if node.height == -1:
+		if node.height == 0:
 			if node.parent.left.key == node.key:
 				node.parent.left = AVLNode(None,None)
 			elif node.parent.right.key == node.key:
@@ -304,6 +330,7 @@ class AVLTree(object):
 				node.parent.left = node.right
 			elif node.parent.right.key == node.key:
 				node.parent.right = node.right
+
 		# Case II - one child in left
 		elif (not node.right.is_real_node()) and (node.left.is_real_node()):
 			node.left.parent = node.parent
@@ -312,22 +339,33 @@ class AVLTree(object):
 			elif node.parent.right.key == node.key:
 				node.parent.right = node.left
 
-		# Case III - have both children
+		# Case III - two children
 		else:
 			suc = self._get_successor(node)
-			suc.right.parent = suc.parent
-			if suc.parent.left.key == suc.key:
-				suc.parent.left = suc.right
-			elif suc.parent.right.key == suc.key:
-				suc.parent.right = suc.right
-			
+			if suc.parent != node:
+				if suc.right.is_real_node():
+					suc.right.parent = suc.parent
+				if suc.parent.left == suc:
+					suc.parent.left = suc.right
+				else:
+					suc.parent.right = suc.right
+				suc.right = node.right
+				if suc.right.is_real_node():
+					suc.right.parent = suc
+
 			suc.left = node.left
-			suc.right = node.right
+			if suc.left.is_real_node():
+				suc.left.parent = suc
+
 			suc.parent = node.parent
-			if node.parent.left.key == node.key:
+			if node.parent is None:
+				self.root = suc
+			elif node.parent.left == node:
 				node.parent.left = suc
-			elif node.parent.right.key == node.key:
+			else:
 				node.parent.right = suc
+
+			self._update_height_and_bf(suc)
 
 	def _get_successor(self, node: AVLNode):
 		if node.right.is_real_node():
@@ -340,6 +378,18 @@ class AVLTree(object):
 			while not node.right.is_real_node():
 				node = node.parent
 			return node.right
+		
+	def _get_predecessor(self, node: AVLNode):
+		if node.left.is_real_node():
+			node = node.left
+			while node.right.is_real_node():
+				node = node.right
+			return node
+		
+		else:
+			while not node.left.is_real_node():
+				node = node.parent
+			return node.left
 
 	"""returns an array representing dictionary 
 
@@ -363,14 +413,15 @@ class AVLTree(object):
 	def size(self):
 		return self.tree_size
 
-
 	"""returns the root of the tree representing the dictionary
 
 	@rtype: AVLNode
 	@returns: the root, None if the dictionary is empty
 	"""
 	def get_root(self):
-		return self.root
+		if self.root.is_real_node():
+			return self.root
+		return None
 
 	"""gets amir's suggestion of balance factor
 	@returns: the number of nodes which have balance factor equals to 0 devided by the total number of nodes
@@ -387,16 +438,3 @@ class AVLTree(object):
 				_print(node.left, prefix + ("    " if is_left else "|   "), True)
 
 		_print(self.root)
-
-def check():
-	l = [7,6,12,4,10,9,13,18,3]
-	t = AVLTree()
-	for i in l:
-		t.insert(i, "a", "root")
-		t.print_tree()
-		print("#############################################################")
-		print("                                                             ")
-		print("#############################################################")
-	
-
-check()
