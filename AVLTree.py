@@ -127,19 +127,19 @@ class AVLTree(object):
 		return new_node, height_changed
 
 	def insert_from_max(self, new_node: AVLNode):
-		if (self.root.max is None):
+		if (self.max_node is None):
 			self.root = new_node
 			self.max_node = new_node
 			self.tree_size = 1
 			self.bf0_count = 1
 			return new_node, False
 
-		if new_node.key > self.max:
-			new_node.parent = self.max
-			self.max.right = new_node
-			self.max = new_node
+		if new_node.key > self.max_node.key:
+			new_node.parent = self.max_node
+			self.max_node.right = new_node
+			self.max_node = new_node
 		else:
-			node = self.max
+			node = self.max_node
 			while (node.key > new_node.key) and (node.key != self.root.key):
 				node = node.parent
 			
@@ -181,11 +181,21 @@ class AVLTree(object):
 			left_height = current.left.height if current.left.is_real_node() else -1
 			right_height = current.right.height if current.right.is_real_node() else -1
 			current.height = 1 + max(left_height,right_height)
+			prev_bf = current.bf
 			current.bf = left_height - right_height
+
+			self._fix_bf_change(prev_bf, current.bf)
+
 			if current.height != old_height:
 				height_changed = True
 			current = current.parent
 		return height_changed
+	
+	def _fix_bf_change(self, prev, curr):
+		if prev == 0 and curr != 0:
+			self.bf0_count -= 1
+		if prev != 0 and curr == 0:
+			self.bf0_count += 1
 			
 	def rotation(self, node: AVLNode):
 		changes = 1
@@ -253,6 +263,7 @@ class AVLTree(object):
 	@returns: the number of rebalancing operation due to AVL rebalancing
 	"""
 	def delete(self, node: AVLNode):
+		self.tree_size -= 1
 		self._delete_node(node)
 		height_changed = self._update_height_and_bf(node)
 		y = node.parent
@@ -281,7 +292,10 @@ class AVLTree(object):
 	def _delete_node(self, node:AVLNode):
 		# Case I - leaf
 		if node.height == -1:
-			node.parent = AVLNode(None, None)
+			if node.parent.left.key == node.key:
+				node.parent.left = AVLNode(None,None)
+			elif node.parent.right.key == node.key:
+				node.parent.right = AVLNode(None,None)
 		
 		# Case II - one child in right
 		elif (not node.left.is_real_node()) and (node.right.is_real_node()):
@@ -362,14 +376,14 @@ class AVLTree(object):
 	@returns: the number of nodes which have balance factor equals to 0 devided by the total number of nodes
 	"""
 	def get_amir_balance_factor(self):
-		return self.size/self.bf0_count
+		return self.tree_size/self.bf0_count
 
 
 	def print_tree(self):
 		def _print(node, prefix="", is_left=True):
 			if node is not None:
 				_print(node.right, prefix+ ("|    " if is_left else "    "), False)
-				print(prefix + ("|____" if is_left else "|----") + str(node.key))
+				print(prefix + ("|____" if is_left else "|----") + f"{node.key} (bf: {node.bf}, height: {node.height})")
 				_print(node.left, prefix + ("    " if is_left else "|   "), True)
 
 		_print(self.root)
@@ -378,7 +392,7 @@ def check():
 	l = [7,6,12,4,10,9,13,18,3]
 	t = AVLTree()
 	for i in l:
-		t.insert(i, "a", "root")
+		t.insert(i, "a", "max")
 		t.print_tree()
 		print("#############################################################")
 		print("                                                             ")
