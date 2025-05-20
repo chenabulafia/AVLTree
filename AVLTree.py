@@ -114,7 +114,7 @@ class AVLTree(object):
 		return num_of_rotations
 
 	def insert_from_root(self, new_node: AVLNode):
-		if (self.root.key is None):
+		if (not self.root.is_real_node()):
 			self.root = new_node
 			self.max_node = new_node
 			self.tree_size = 1
@@ -127,7 +127,7 @@ class AVLTree(object):
 		return new_node, height_changed
 
 	def insert_from_max(self, new_node: AVLNode):
-		if (self.max_node is None):
+		if (not self.max_node.is_real_node()):
 			self.root = new_node
 			self.max_node = new_node
 			self.tree_size = 1
@@ -392,7 +392,7 @@ def check():
 	l = [7,6,12,4,10,9,13,18,3]
 	t = AVLTree()
 	for i in l:
-		t.insert(i, "a", "max")
+		t.insert(i, "a", "root")
 		t.print_tree()
 		print("#############################################################")
 		print("                                                             ")
