@@ -104,14 +104,14 @@ class AVLTree(object):
 			y.bf = left_height - right_height
 			abs_bf = abs(y.bf)
 			if (abs_bf < 2) and (not height_changed):
-				return 0, new_node
+				return 0
 			if (abs_bf < 2) and (height_changed):
 				y = y.parent
 			if abs_bf >= 2:
 				num_of_rotations += self.insert_rotations(y)
 				y = y.parent
 
-		return (num_of_rotations, new_node)
+		return num_of_rotations
 
 	def insert_from_root(self, new_node: AVLNode):
 		if (not self.root.is_real_node()):
