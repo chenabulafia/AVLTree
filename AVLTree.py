@@ -288,6 +288,8 @@ class AVLTree(object):
 	def delete(self, node: AVLNode):
 		self.tree_size -= 1
 		self._delete_node(node)
+		if node.bf == 0:
+			self.bf0_count -= 1
 		height_changed = self._update_height_and_bf(node.parent)
 		y = node.parent
 		num_of_rotations = 0
