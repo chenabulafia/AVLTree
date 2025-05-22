@@ -89,7 +89,8 @@ class AVLTree(object):
 	@returns: the number of rebalancing operation due to AVL rebalancing
 	"""
 	def insert(self, key, val, start="root"):
-		self.tree_size +=1
+		self.tree_size += 1
+		self.bf0_count += 1
 		node = AVLNode(key,val)
 		node.left = AVLNode(None,None)
 		node.right = AVLNode(None,None)
@@ -106,7 +107,7 @@ class AVLTree(object):
 			y.bf = left_height - right_height
 			abs_bf = abs(y.bf)
 			if (abs_bf < 2) and (not height_changed):
-				return 0
+				break
 			if (abs_bf < 2) and (height_changed):
 				y = y.parent
 			if abs_bf >= 2:
@@ -297,7 +298,7 @@ class AVLTree(object):
 			y.bf = left_height - right_height
 			abs_bf = abs(y.bf)
 			if (abs_bf < 2) and (not height_changed):
-				return 0
+				break
 			if (abs_bf < 2) and (height_changed):
 				y = y.parent
 			if abs_bf >= 2:
@@ -400,9 +401,9 @@ class AVLTree(object):
 		return self._rec_to_array(self.root)
 
 	def _rec_to_array(self, node: AVLNode):
-		if node is None:
+		if node is None or not node.is_real_node():
 			return []
-		return self._rec_to_array(node.left) + [node.key] + self._rec_to_array(node.right)
+		return self._rec_to_array(node.left) + [(node.key, node.value)] + self._rec_to_array(node.right)
 
 
 	"""returns the number of items in dictionary 
