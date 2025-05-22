@@ -119,7 +119,6 @@ class AVLTree(object):
 		if (not self.root.is_real_node()):
 			self.root = new_node
 			self.max_node = new_node
-			self.tree_size = 1
 			self.bf0_count = 1
 			return new_node, False
 
@@ -134,7 +133,6 @@ class AVLTree(object):
 		if (not self.max_node.is_real_node()):
 			self.root = new_node
 			self.max_node = new_node
-			self.tree_size = 1
 			self.bf0_count = 1
 			return new_node, False
 
