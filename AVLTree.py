@@ -428,7 +428,7 @@ class AVLTree(object):
 	@returns: the number of nodes which have balance factor equals to 0 devided by the total number of nodes
 	"""
 	def get_amir_balance_factor(self):
-		return self.tree_size/self.bf0_count
+		return self.bf0_count/self.tree_size
 
 
 	def print_tree(self):
