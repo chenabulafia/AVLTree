@@ -72,7 +72,8 @@ class AVLTree(object):
 			
 			if node.key < key:
 				node = node.right
-			node = node.left
+			else:
+				node = node.left
 		return None
 
 
