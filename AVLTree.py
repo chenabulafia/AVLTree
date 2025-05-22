@@ -438,3 +438,18 @@ class AVLTree(object):
 				_print(node.left, prefix + ("    " if is_left else "|   "), True)
 
 		_print(self.root)
+
+
+
+def check():
+	t = AVLTree()
+	for i in [7,5,3,6,9,4,12,8,11,30,64,2,1]:
+		t.insert(i, "", "max")
+	
+	t.print_tree()
+	import ipdb; ipdb.set_trace()
+	t.search(7)
+	k = t.search(1)
+	t.delete(k)
+
+check()
