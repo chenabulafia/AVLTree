@@ -106,7 +106,7 @@ class AVLTree(object):
 			y.bf = left_height - right_height
 			abs_bf = abs(y.bf)
 			if (abs_bf < 2) and (not height_changed):
-				return 0
+				break
 			if (abs_bf < 2) and (height_changed):
 				y = y.parent
 			if abs_bf >= 2:
@@ -297,7 +297,7 @@ class AVLTree(object):
 			y.bf = left_height - right_height
 			abs_bf = abs(y.bf)
 			if (abs_bf < 2) and (not height_changed):
-				return 0
+				break
 			if (abs_bf < 2) and (height_changed):
 				y = y.parent
 			if abs_bf >= 2:
@@ -400,9 +400,9 @@ class AVLTree(object):
 		return self._rec_to_array(self.root)
 
 	def _rec_to_array(self, node: AVLNode):
-		if node is None:
+		if node is None or not node.is_real_node():
 			return []
-		return self._rec_to_array(node.left) + [node.key] + self._rec_to_array(node.right)
+		return self._rec_to_array(node.left) + [(node.key, node.value)] + self._rec_to_array(node.right)
 
 
 	"""returns the number of items in dictionary 
