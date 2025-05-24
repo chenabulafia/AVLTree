@@ -84,7 +84,7 @@ class AVLTree(object):
 	@param key: key of item that is to be inserted to self
 	@type val: string
 	@param val: the value of the item
-    @param start: can be either "root" or "max"
+	@param start: can be either "root" or "max"
 	@rtype: int
 	@returns: the number of rebalancing operation due to AVL rebalancing
 	"""
@@ -287,30 +287,29 @@ class AVLTree(object):
 	"""
 	def delete(self, node: AVLNode):
 		self.tree_size -= 1
-		self._delete_node(node)
+		
+		deleted_node_parent = self._delete_node(node)
+		
 		if node.bf == 0:
 			self.bf0_count -= 1
-		height_changed = self._update_height_and_bf(node.parent)
-		y = node.parent
+		y = deleted_node_parent
 		num_of_rotations = 0
 		
-		while (y is not None):
+		while y is not None:
 			left_height = y.left.height if y.left and y.left.is_real_node() else -1
 			right_height = y.right.height if y.right and y.right.is_real_node() else -1
+
+			prev_bf = y.bf
 			y.bf = left_height - right_height
+			self._fix_bf_change(prev_bf, y.bf)
+
 			abs_bf = abs(y.bf)
-			if (abs_bf < 2) and (not height_changed):
-				break
-			if (abs_bf < 2) and (height_changed):
-				y = y.parent
+
 			if abs_bf >= 2:
 				num_of_rotations += self.delete_rotations(y)
-				y = y.parent
+			
+			y = y.parent
 
-		# Clear this node
-		node.left = None
-		node.right = None
-		node.parent = None
 
 		return num_of_rotations
 
@@ -319,32 +318,52 @@ class AVLTree(object):
 			pred = self._get_predecessor(node)
 			self.max_node = pred
 
-		# Case I - leaf
-		if node.height == 0:
-			if node.parent.left.key == node.key:
-				node.parent.left = AVLNode(None,None)
-			elif node.parent.right.key == node.key:
-				node.parent.right = AVLNode(None,None)
-		
-		# Case II - one child in right
-		elif (not node.left.is_real_node()) and (node.right.is_real_node()):
-			node.right.parent = node.parent
-			if node.parent.left.key == node.key:
-				node.parent.left = node.right
-			elif node.parent.right.key == node.key:
-				node.parent.right = node.right
+		parent = node.parent
+		is_root = parent is None
+		is_left_child = parent and parent.left.is_real_node() and parent.left.key == node.key
+		is_right_child = parent and parent.right.is_real_node() and parent.right.key == node.key
 
-		# Case II - one child in left
-		elif (not node.right.is_real_node()) and (node.left.is_real_node()):
-			node.left.parent = node.parent
-			if node.parent.left.key == node.key:
-				node.parent.left = node.left
-			elif node.parent.right.key == node.key:
-				node.parent.right = node.left
+		# Case I - node is a leaf
+		if not node.left.is_real_node() and not node.right.is_real_node():
+			if is_root:
+				self.root = AVLNode(None, None)
+			elif is_left_child:
+				parent.left = AVLNode(None, None)
+			elif is_right_child:
+				parent.right = AVLNode(None, None)
+			return node.parent	
 
-		# Case III - two children
+		# Case II - node has only right child
+		elif not node.left.is_real_node():
+			child = node.right
+			child.parent = parent
+			if is_root:
+				self.root = child
+			elif is_left_child:
+				parent.left = child
+			elif is_right_child:
+				parent.right = child
+			return node.parent
+
+		# Case II - node has only left child
+		elif not node.right.is_real_node():
+			child = node.left
+			child.parent = parent
+			if is_root:
+				self.root = child
+			elif is_left_child:
+				parent.left = child
+			elif is_right_child:
+				parent.right = child
+			return node.parent
+
+		# # Case III - node has two children
 		else:
+			print("deleting a node with 2 children")
 			suc = self._get_successor(node)
+			suc_parent = suc.parent
+			print("the successor:",suc)
+			# Disconnect successor from its current location
 			if suc.parent != node:
 				if suc.right.is_real_node():
 					suc.right.parent = suc.parent
@@ -355,20 +374,26 @@ class AVLTree(object):
 				suc.right = node.right
 				if suc.right.is_real_node():
 					suc.right.parent = suc
-
+			else:
+				suc_parent = suc
+				if node.right.is_real_node():
+					node.right.parent = suc
+     
+			# Replace node with successor
 			suc.left = node.left
 			if suc.left.is_real_node():
 				suc.left.parent = suc
 
-			suc.parent = node.parent
-			if node.parent is None:
+			suc.parent = parent
+			if is_root:
 				self.root = suc
-			elif node.parent.left == node:
+			elif is_left_child:
 				node.parent.left = suc
 			else:
 				node.parent.right = suc
 
 			self._update_height_and_bf(suc)
+			return suc_parent
 
 	def _get_successor(self, node: AVLNode):
 		if node.right.is_real_node():
@@ -437,7 +462,7 @@ class AVLTree(object):
 		def _print(node, prefix="", is_left=True):
 			if node is not None:
 				_print(node.right, prefix+ ("|    " if is_left else "    "), False)
-				print(prefix + ("|____" if is_left else "|----") + f"{node.key} (bf: {node.bf}, height: {node.height})")
+				print(prefix + ("|__" if is_left else "|----") + f"{node.key} (bf: {node.bf}, height: {node.height})")
 				_print(node.left, prefix + ("    " if is_left else "|   "), True)
 
 		_print(self.root)
